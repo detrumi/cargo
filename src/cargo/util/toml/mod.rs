@@ -13,7 +13,7 @@ use toml;
 use url::Url;
 
 use core::dependency::{Kind, Platform};
-use core::manifest::{LibKind, ManifestMetadata, Warnings};
+use core::manifest::{LibKind, Lints, ManifestMetadata, Warnings};
 use core::profiles::Profiles;
 use core::{Dependency, Manifest, PackageId, Summary, Target};
 use core::{Edition, EitherManifest, Feature, Features, VirtualManifest};
@@ -240,6 +240,7 @@ pub struct TomlManifest {
     patch: Option<BTreeMap<String, BTreeMap<String, TomlDependency>>>,
     workspace: Option<TomlWorkspace>,
     badges: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    lints: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
@@ -703,6 +704,7 @@ impl TomlManifest {
             workspace: None,
             badges: self.badges.clone(),
             cargo_features: self.cargo_features.clone(),
+            lints: self.lints.clone(),
         });
 
         fn map_deps(
@@ -958,6 +960,19 @@ impl TomlManifest {
             None => false,
         };
 
+        let lints = me.lints.as_ref().map(|ref ls| {
+            let mut lints = Lints { warn: vec![], allow: vec![], deny: vec![] };
+            for (lint_name, lint_state) in ls.iter() {
+                match lint_state.as_ref() {
+                    "warn" => lints.warn.push(lint_name.to_string()),
+                    "allow" => lints.allow.push(lint_name.to_string()),
+                    "deny" => lints.deny.push(lint_name.to_string()),
+                    _ => continue, // TODO error here?
+                }
+            }
+            lints
+        });
+
         let custom_metadata = project.metadata.clone();
         let mut manifest = Manifest::new(
             summary,
@@ -975,6 +990,7 @@ impl TomlManifest {
             workspace_config,
             features,
             edition,
+            lints,
             project.im_a_teapot,
             project.default_run.clone(),
             Rc::clone(me),

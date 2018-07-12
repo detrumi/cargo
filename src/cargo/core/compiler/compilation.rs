@@ -127,6 +127,17 @@ impl<'cfg> Compilation<'cfg> {
         if manifest.features().is_enabled(Feature::edition()) {
             p.arg(format!("--edition={}", target.edition()));
         }
+        if let Some(lints) = manifest.lints() {
+            if !lints.warn.is_empty() {
+                p.arg("-W").arg(lints.warn.join(","));
+            }
+            if !lints.allow.is_empty() {
+                p.arg("-A").arg(lints.allow.join(","));
+            }
+            if !lints.deny.is_empty() {
+                p.arg("-D").arg(lints.deny.join(","));
+            }
+        }
         Ok(p)
     }
 
