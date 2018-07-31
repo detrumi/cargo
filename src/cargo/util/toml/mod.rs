@@ -13,7 +13,8 @@ use toml;
 use url::Url;
 
 use core::dependency::{Kind, Platform};
-use core::manifest::{LibKind, Lints, ManifestMetadata, Warnings};
+use core::manifest::{LibKind, ManifestMetadata, Warnings};
+use core::lints::Lints;
 use core::profiles::Profiles;
 use core::{Dependency, Manifest, PackageId, Summary, Target};
 use core::{Edition, EitherManifest, Feature, Features, VirtualManifest};
@@ -939,6 +940,7 @@ impl TomlManifest {
             ),
         };
         let profiles = Profiles::new(me.profile.as_ref(), config, &features, &mut warnings)?;
+        let lints = Lints::new(me.lints.as_ref(), &mut warnings)?;
         let publish = match project.publish {
             Some(VecStringOrBool::VecString(ref vecstring)) => {
                 features
@@ -959,26 +961,6 @@ impl TomlManifest {
             }
             None => false,
         };
-
-        let lints = me.lints.as_ref().map(|ref ls| {
-            let mut lints = Lints {
-                warn: vec![],
-                allow: vec![],
-                deny: vec![],
-            };
-            for (lint_name, lint_state) in ls.iter() {
-                match lint_state.as_ref() {
-                    "warn" => lints.warn.push(lint_name.to_string()),
-                    "allow" => lints.allow.push(lint_name.to_string()),
-                    "deny" => lints.deny.push(lint_name.to_string()),
-                    _ => warnings.push(format!(
-                        "invalid lint state for `{}` (expected `warn`, `allow` or `deny`)",
-                        lint_name
-                    )),
-                }
-            }
-            lints
-        });
 
         let custom_metadata = project.metadata.clone();
         let mut manifest = Manifest::new(
@@ -1071,6 +1053,7 @@ impl TomlManifest {
             (me.replace(&mut cx)?, me.patch(&mut cx)?)
         };
         let profiles = Profiles::new(me.profile.as_ref(), config, &features, &mut warnings)?;
+        let lints = Lints::new(me.lints.as_ref(), &mut warnings)?;
         let workspace_config = match me.workspace {
             Some(ref config) => WorkspaceConfig::Root(WorkspaceRootConfig::new(
                 &root,
@@ -1083,7 +1066,7 @@ impl TomlManifest {
             }
         };
         Ok((
-            VirtualManifest::new(replace, patch, workspace_config, profiles),
+            VirtualManifest::new(replace, patch, workspace_config, profiles, lints),
             nested_paths,
         ))
     }
