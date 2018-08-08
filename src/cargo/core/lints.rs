@@ -13,28 +13,28 @@ enum LintKind {
 #[derive(Clone, Debug)]
 pub struct Lints {
     lints: HashMap<String, LintKind>,
+    required_features: Option<Vec<String>>,
 }
 
 impl Lints {
     pub fn new(
-        manifest_lints: Option<&BTreeMap<String, String>>,
+        manifest_lints: &BTreeMap<String, String>,
+        required_features: Option<Vec<String>>,
         warnings: &mut Vec<String>,
     ) -> CargoResult<Lints> {
         let mut lints = HashMap::new();
-        if let Some(lint_section) = manifest_lints {
-            for (lint_name, lint_state) in lint_section.iter() {
-                match lint_state.as_ref() {
-                    "allow" => { lints.insert(lint_name.to_string(), LintKind::Allow); },
-                    "warn" => { lints.insert(lint_name.to_string(), LintKind::Warn); },
-                    "deny" => { lints.insert(lint_name.to_string(), LintKind::Deny); },
-                    _ => warnings.push(format!(
-                        "invalid lint state for `{}` (expected `warn`, `allow` or `deny`)",
-                        lint_name
-                    )),
-                }
+        for (lint_name, lint_state) in manifest_lints.iter() {
+            match lint_state.as_ref() {
+                "allow" => { lints.insert(lint_name.to_string(), LintKind::Allow); },
+                "warn" => { lints.insert(lint_name.to_string(), LintKind::Warn); },
+                "deny" => { lints.insert(lint_name.to_string(), LintKind::Deny); },
+                _ => warnings.push(format!(
+                    "invalid lint state for `{}` (expected `warn`, `allow` or `deny`)",
+                    lint_name
+                )),
             }
         }
-        Ok(Lints { lints })
+        Ok(Lints { lints, required_features })
     }
 
     pub fn set_flags(&self, cmd: &mut ProcessBuilder, package_lints: &Lints) {

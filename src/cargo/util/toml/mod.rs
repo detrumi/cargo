@@ -241,7 +241,7 @@ pub struct TomlManifest {
     patch: Option<BTreeMap<String, BTreeMap<String, TomlDependency>>>,
     workspace: Option<TomlWorkspace>,
     badges: Option<BTreeMap<String, BTreeMap<String, String>>>,
-    lints: Option<BTreeMap<String, String>>,
+    lints: Option<Vec<TomlLints>>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug, Default)]
@@ -1430,4 +1430,11 @@ impl fmt::Debug for PathValue {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(f)
     }
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
+struct TomlLints {
+    lints: BTreeMap<String, String>,
+    #[serde(rename = "required-features")]
+    required_features: Option<Vec<String>>,
 }

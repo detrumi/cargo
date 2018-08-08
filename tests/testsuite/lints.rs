@@ -175,3 +175,33 @@ fn virtual_workspace_overrides() {
             .with_stderr_contains("[..]error: function is never used: `baz`[..]"),
     );
 }
+
+#[test]
+fn feature_flag() {
+    let p = project()
+        .file(
+            "Cargo.toml",
+            r#"
+            [package]
+            name = "foo"
+            version = "0.0.1"
+            authors = []
+
+            [lints.'cfg(feature = "clippy")']
+            dead_code = "deny"
+        "#,
+        )
+        .file("src/lib.rs", "fn foo() {}")
+        .build();
+
+    assert_that(
+        p.cargo("build"),
+        execs().with_status(0),
+    );
+    assert_that(
+        p.cargo("build").arg("--cfg").arg("feature=clippy"),
+        execs()
+            .with_status(101)
+            .with_stderr_contains("[..]error: function is never used: `foo`[..]"),
+    );
+}
